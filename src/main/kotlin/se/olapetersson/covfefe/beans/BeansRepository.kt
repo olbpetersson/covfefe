@@ -1,8 +1,8 @@
-package se.olapetersson.covfefe
+package se.olapetersson.covfefe.beans
 
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.eventbus.EventBus
-import io.vertx.core.json.JsonObject
+import io.vertx.core.json.Json
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.mongo.MongoClient
 import io.vertx.kotlin.core.json.json
@@ -60,21 +60,26 @@ class BeansRepository : AbstractVerticle() {
     }
 
     fun setupCreateBook() {
-        eventBus.consumer<JsonObject>(ADDRESS) { message ->
-            logger.info("I have received a message: ${message.body()}")
+        // eventBus.consumeAddBeanResponse {
+        // }
+
+        eventBus.consumeCoffeBeanRequest { beanRequest, message ->
+            logger.info("I have received a message: $beanRequest")
+
             val beanDto = json {
                 obj(
-                    "_id" to message.body().map["name"],
-                    "name" to message.body().map["name"]
+                    "_id" to beanRequest.name,
+                    "name" to beanRequest.name
                 )
             }
 
             client.save(tableName, beanDto) { res ->
                 if (res.succeeded()) {
                     logger.info("Successfully saved a bean")
-                    message.reply(res.result())
+                    message.reply(Json.encode(AddBeanResponse(beanRequest.name)))
                 } else {
-                    message.fail(1, "FAILED IN WRITE")
+                    message.fail(1, "Unable to save")
+                    throw IllegalStateException("unable to save")
                 }
             }
 

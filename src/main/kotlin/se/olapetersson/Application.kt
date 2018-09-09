@@ -2,8 +2,8 @@ package se.olapetersson
 
 import io.vertx.core.Vertx
 import io.vertx.ext.web.Router.router
-import se.olapetersson.covfefe.BeansEndpoints
-import se.olapetersson.covfefe.BeansRepository
+import se.olapetersson.covfefe.beans.BeansEndpoints
+import se.olapetersson.covfefe.beans.BeansRepository
 
 fun main(args: Array<String>) {
     val vertx = Vertx.vertx()

@@ -1,7 +1,6 @@
-package se.olapetersson.covfefe
+package se.olapetersson.covfefe.beans
 
 import io.vertx.core.Vertx
-import io.vertx.core.json.JsonObject
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.web.Router
 import io.vertx.kotlin.core.json.json
@@ -23,24 +22,23 @@ class BeansEndpoints(private val vertx: Vertx) {
             }
 
             logger.info("Received a $beanName to create")
-            eventBus.send<JsonObject>(BeansRepository.ADDRESS, beanRepositoryMessage) { reply ->
-                logger.info("Received reply in POST ${reply.result().body()}")
+
+            eventBus.addCoffeeBean(AddBeanRequest(beanName)) {
+                logger.info("Received reply in POST $it")
                 val response = routingContext.response()
                 response.putHeader("content-type", "application/json")
-                if (!reply.succeeded()) {
-                    throw IllegalStateException(reply.cause())
-                }
+
                 response.setChunked(true).end("created $beanName")
             }
-         }
+        }
 
         val getRoute = router.get("/").handler { routingContext ->
             eventBus.send<String>(BeansRepository.ADDRESS_READ, "") { reply ->
                 logger.info("Received reply in GET ${reply.result()?.body()}")
                 val response = routingContext.response()
                 response.putHeader("content-type", "application/json")
-                if(!reply.succeeded()) {
-                    throw IllegalStateException(reply.cause())
+                if (!reply.succeeded()) {
+                    throw IllegalStateException(reply.cause()) as Throwable
                 }
                 response.setChunked(true).end(reply.result().body().toString())
             }
