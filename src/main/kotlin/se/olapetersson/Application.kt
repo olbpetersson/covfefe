@@ -2,18 +2,16 @@ package se.olapetersson
 
 import io.vertx.core.Vertx
 import io.vertx.ext.web.Router.router
-import se.olapetersson.covfefe.BeansVerticle
+import se.olapetersson.covfefe.BeansEndpoints
+import se.olapetersson.covfefe.BeansRepository
 
 fun main(args: Array<String>) {
     val vertx = Vertx.vertx()
     val httpServer = vertx.createHttpServer()
 
     val router = router(vertx)
-
-    val movieSessionVerticle = BeansVerticle()
-    val beansRoutes = movieSessionVerticle.registerRoutes(vertx)
-
-
+    val beansRoutes = BeansEndpoints(vertx).registerRoutes()
+    val beansRepository = BeansRepository()
     router.route("/").handler { routingContext ->
         val response = routingContext.response()
         response.putHeader("content-type", "text-plain")
@@ -21,7 +19,7 @@ fun main(args: Array<String>) {
     }
     router.mountSubRouter("/beans", beansRoutes)
 
-    vertx.deployVerticle(movieSessionVerticle)
+    vertx.deployVerticle(beansRepository)
 
 
     val port = 8008
