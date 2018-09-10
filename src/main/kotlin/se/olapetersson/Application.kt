@@ -1,6 +1,8 @@
 package se.olapetersson
 
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.vertx.core.Vertx
+import io.vertx.core.json.Json
 import io.vertx.ext.web.Router.router
 import se.olapetersson.covfefe.beans.BeansEndpoints
 import se.olapetersson.covfefe.beans.BeansRepository
@@ -12,6 +14,7 @@ fun main(args: Array<String>) {
     val router = router(vertx)
     val beansRoutes = BeansEndpoints(vertx).registerRoutes()
     val beansRepository = BeansRepository()
+    Json.mapper.registerModule(KotlinModule())
     router.route("/").handler { routingContext ->
         val response = routingContext.response()
         response.putHeader("content-type", "text-plain")

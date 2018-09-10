@@ -21,8 +21,6 @@ class BeansEndpoints(private val vertx: Vertx) {
                 )
             }
 
-            logger.info("Received a $beanName to create")
-
             eventBus.addCoffeeBean(AddBeanRequest(beanName)) {
                 logger.info("Received reply in POST $it")
                 val response = routingContext.response()

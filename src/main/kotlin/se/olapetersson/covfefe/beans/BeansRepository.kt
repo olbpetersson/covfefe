@@ -2,6 +2,7 @@ package se.olapetersson.covfefe.beans
 
 import io.vertx.core.AbstractVerticle
 import io.vertx.core.eventbus.EventBus
+import io.vertx.core.eventbus.Message
 import io.vertx.core.json.Json
 import io.vertx.core.logging.LoggerFactory
 import io.vertx.ext.mongo.MongoClient
@@ -22,22 +23,73 @@ class BeansRepository : AbstractVerticle() {
 
     val eventBus: EventBus by lazy { vertx.eventBus() }
     lateinit var client: MongoClient
+
     override fun start() {
-        // This is supposedly how you can set applicatio config later on
         // Vertx.currentContext().config()
+        // setupCreateBook()
+        // setupFindAll()
+        client = setupMongoClient()
+        eventBus.consumer<String>(ADDRESS) { message ->
+            val payload = coffeeMessageMapper(message.body())
+            when(payload) {
+                is AddBeanRequest -> addBean(payload, message)
+                is GetAllBeansRequest -> getAllBeans(message)
+            }
+
+        }
+    }
+
+    private fun setupMongoClient(): MongoClient {
         val mongoUrl = "mongodb://localhost:27017"
         val mongoPassword = "password"
         val dbName = "test"
-
+        // This is supposedly how you can set applicatio config later on
         val mongoConfig = json {
             obj(
                 "connection_string" to mongoUrl,
                 "db_name" to dbName
             )
         }
-        client = MongoClient.createNonShared(vertx, mongoConfig)
-        setupCreateBook()
-        setupFindAll()
+        return MongoClient.createNonShared(vertx, mongoConfig)
+    }
+
+    fun addBean(addBeanRequest: AddBeanRequest, message: Message<String>) {
+        logger.info("I have received a message: $addBeanRequest")
+
+        val beanDto = json {
+            obj(
+                "_id" to addBeanRequest.name,
+                "name" to addBeanRequest.name
+            )
+        }
+
+        client.save(tableName, beanDto) { res ->
+            if (res.succeeded()) {
+                logger.info("Successfully saved a bean")
+                val jsonString = Json.encode(AddBeanResponse(addBeanRequest.name))
+                logger.info("Continuing with $jsonString")
+                message.reply(jsonString)
+            } else {
+                message.fail(1, "Unable to save")
+                throw IllegalStateException("unable to save")
+            }
+        }
+    }
+
+    fun getAllBeans(message: Message<String>) {
+        logger.info("I received a message to find all${message.body()}")
+        var query = json {
+            obj()
+        }
+        client.find(tableName, query) { res ->
+            if (res.succeeded()) {
+                logger.info("Received all the beans")
+                message.reply(res.result().toString())
+            } else {
+                logger.error("Failed to get all beans ${res.cause().printStackTrace()}")
+                message.fail(2, "FAILED IN READ")
+            }
+        }
     }
 
     fun setupFindAll() {
@@ -63,25 +115,8 @@ class BeansRepository : AbstractVerticle() {
         // eventBus.consumeAddBeanResponse {
         // }
 
-        eventBus.consumeCoffeBeanRequest { beanRequest, message ->
-            logger.info("I have received a message: $beanRequest")
+        eventBus.consumeCoffeeBeanRequest { beanRequest, message ->
 
-            val beanDto = json {
-                obj(
-                    "_id" to beanRequest.name,
-                    "name" to beanRequest.name
-                )
-            }
-
-            client.save(tableName, beanDto) { res ->
-                if (res.succeeded()) {
-                    logger.info("Successfully saved a bean")
-                    message.reply(Json.encode(AddBeanResponse(beanRequest.name)))
-                } else {
-                    message.fail(1, "Unable to save")
-                    throw IllegalStateException("unable to save")
-                }
-            }
 
 
         }
